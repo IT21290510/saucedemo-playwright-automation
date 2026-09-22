@@ -1,142 +1,102 @@
-// Import Playwright's test function and expect assertion
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { ProductsPage } from '../pages/ProductsPage';
+
+// Group all product-related test cases together
+test.describe('Products Tests', () => {
+
+  // This code runs before every test in this test suite
+  // It logs in using a valid user before testing the products page
+  test.beforeEach(async ({ page }) => {
+
+    // Create an object of the LoginPage class
+    const loginPage = new LoginPage(page);
+
+    // Open the SauceDemo login page
+    await loginPage.goto();
+
+    // Login using valid username and password
+    await loginPage.login('standard_user', 'secret_sauce');
+  });
 
 
-// ---------------------------------------------------------
-// BEFORE EACH TEST
-// ---------------------------------------------------------
+  // Test 1: Verify that the products page is displayed after login
+  test('products page is displayed after login', async ({ page }) => {
 
-test.beforeEach(async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Open SauceDemo
-    await page.goto('https://www.saucedemo.com/');
+    // Verify that the user is redirected to the inventory/products page
+    await expect(page).toHaveURL(/inventory/);
 
-    // Enter valid username
-    await page.getByPlaceholder('Username').fill('standard_user');
-
-    // Enter valid password
-    await page.getByPlaceholder('Password').fill('secret_sauce');
-
-    // Click Login
-    await page.getByRole('button', { name: 'Login' }).click();
-
-    // Wait until the Products heading is visible
-    // This also confirms that login was successful
-    await expect(
-        page.getByText('Products')
-    ).toBeVisible();
-});
+    // Verify that at least one product is visible on the page
+    await expect(productsPage.productsList.first()).toBeVisible();
+  });
 
 
-// ---------------------------------------------------------
-// TEST 1: Products Page
-// ---------------------------------------------------------
+  // Test 2: Verify that six products are displayed
+  test('six products are displayed', async ({ page }) => {
 
-test('user can view the products page', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Verify that the Products heading is displayed
-    await expect(
-        page.getByText('Products')
-    ).toBeVisible();
+    // Get the number of products displayed on the products page
+    const productCount = await productsPage.getProductCount();
 
-    // Verify that the inventory container exists
-    await expect(
-        page.locator('.inventory_list')
-    ).toBeVisible();
-});
+    // Verify that exactly six products are displayed
+    expect(productCount).toBe(6);
+  });
 
 
-// ---------------------------------------------------------
-// TEST 2: Product List
-// ---------------------------------------------------------
+  // Test 3: Verify that the Sauce Labs Backpack can be viewed
+  test('user can view Sauce Labs Backpack', async ({ page }) => {
 
-test('products are displayed on the products page', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Locate all product cards
-    const products = page.locator('.inventory_item');
-
-    // Verify that products are displayed
-    // SauceDemo currently has multiple products
-    await expect(products).toHaveCount(6);
-});
-
-
-// ---------------------------------------------------------
-// TEST 3: View Product Details
-// ---------------------------------------------------------
-
-test('user can view product details', async ({ page }) => {
-
-    // Click the Sauce Labs Backpack product
-    await page.getByText('Sauce Labs Backpack').click();
-
-    // Verify that the product name is visible
-    await expect(
-        page.getByText('Sauce Labs Backpack')
-    ).toBeVisible();
-
-    // Verify that the product price is displayed
-    await expect(
-        page.getByText('$29.99')
-    ).toBeVisible();
-});
-
-
-// ---------------------------------------------------------
-// TEST 4: Add Product to Cart
-// ---------------------------------------------------------
-
-test('user can add a product to cart', async ({ page }) => {
-
-    // Find the specific product card
+    // Find the inventory item that contains the text
+    // "Sauce Labs Backpack"
     const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
+      .locator('.inventory_item')
+      .filter({ hasText: 'Sauce Labs Backpack' });
 
-    // Click Add to cart inside the Backpack product card
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Verify that the Sauce Labs Backpack is visible
+    await expect(backpack).toBeVisible();
 
-    // Verify that the shopping cart badge shows 1
-    await expect(
-        page.locator('.shopping_cart_badge')
-    ).toHaveText('1');
-});
+    // Verify that the Backpack has the correct price
+    await expect(backpack).toContainText('$29.99');
+  });
 
 
-// ---------------------------------------------------------
-// TEST 5: Remove Product From Cart
-// ---------------------------------------------------------
+  // Test 4: Verify that a user can add a product to the cart
+  test('user can add a product to cart', async ({ page }) => {
 
-test('user can remove a product from the products page', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Find the Backpack product
-    const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
+    // Add the Sauce Labs Backpack to the shopping cart
+    await productsPage.addProduct('Sauce Labs Backpack');
 
-    // Add the Backpack to the cart
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Verify that the shopping cart badge shows 1 item
+    await expect(productsPage.cartBadge).toHaveText('1');
+  });
 
-    // Verify that the cart contains one item
-    await expect(
-        page.locator('.shopping_cart_badge')
-    ).toHaveText('1');
 
-    // Click Remove for the Backpack
-    await backpack
-        .getByRole('button', { name: 'Remove' })
-        .click();
+  // Test 5: Verify that a user can remove a product from the products page
+  test('user can remove a product from products page', async ({ page }) => {
+
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
+
+    // First, add the Sauce Labs Backpack to the cart
+    await productsPage.addProduct('Sauce Labs Backpack');
+
+    // Remove the Sauce Labs Backpack from the cart
+    await productsPage.removeProduct('Sauce Labs Backpack');
 
     // Verify that the cart badge is no longer visible
-    await expect(
-        page.locator('.shopping_cart_badge')
-    ).not.toBeVisible();
+    // because there are no products in the cart
+    await expect(productsPage.cartBadge).not.toBeVisible();
+  });
+
 });

@@ -1,181 +1,141 @@
-// Import Playwright's test function and expect assertion
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { ProductsPage } from '../pages/ProductsPage';
+import { CartPage } from '../pages/CartPage';
+
+// Group all cart-related test cases together
+test.describe('Cart Tests', () => {
+
+  // This code runs before every test in this test suite
+  // It logs in with a valid user before starting each cart test
+  test.beforeEach(async ({ page }) => {
+
+    // Create an object of the LoginPage class
+    const loginPage = new LoginPage(page);
+
+    // Open the SauceDemo login page
+    await loginPage.goto();
+
+    // Login using valid username and password
+    await loginPage.login('standard_user', 'secret_sauce');
+  });
 
 
-// ---------------------------------------------------------
-// BEFORE EACH TEST
-// ---------------------------------------------------------
+  // Test 1: Verify that a user can add a product and view it in the cart
+  test('user can add product and view it in cart', async ({ page }) => {
 
-test.beforeEach(async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Open SauceDemo
-    await page.goto('https://www.saucedemo.com/');
+    // Create an object of the CartPage class
+    const cartPage = new CartPage(page);
 
-    // Login with a valid user
-    await page.getByPlaceholder('Username').fill('standard_user');
-
-    await page.getByPlaceholder('Password').fill('secret_sauce');
-
-    // Click Login
-    await page.getByRole('button', { name: 'Login' }).click();
-
-    // Verify successful login
-    await expect(
-        page.getByText('Products')
-    ).toBeVisible();
-});
-
-
-// ---------------------------------------------------------
-// TEST 1: Add Product and Open Cart
-// ---------------------------------------------------------
-
-test('user can add a product and view it in the cart', async ({ page }) => {
-
-    // Find the Backpack product
-    const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
-
-    // Add Backpack to the cart
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Add the Sauce Labs Backpack to the shopping cart
+    await productsPage.addProduct('Sauce Labs Backpack');
 
     // Open the shopping cart
-    await page.locator('.shopping_cart_link').click();
+    await productsPage.openCart();
 
-    // Verify that Backpack is displayed in the cart
+    // Verify that the user is on the cart page
+    await expect(page).toHaveURL(/cart/);
+
+    // Verify that the Sauce Labs Backpack is displayed in the cart
     await expect(
-        page.getByText('Sauce Labs Backpack')
+      cartPage.getProduct('Sauce Labs Backpack')
     ).toBeVisible();
-});
+  });
 
 
-// ---------------------------------------------------------
-// TEST 2: Verify Product Price
-// ---------------------------------------------------------
+  // Test 2: Verify that the correct product price is displayed in the cart
+  test('user can verify product price in cart', async ({ page }) => {
 
-test('cart displays the correct product price', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Find Backpack
-    const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
+    // Create an object of the CartPage class
+    const cartPage = new CartPage(page);
 
-    // Add Backpack to cart
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Add the Sauce Labs Backpack to the shopping cart
+    await productsPage.addProduct('Sauce Labs Backpack');
 
-    // Open cart
-    await page.locator('.shopping_cart_link').click();
+    // Open the shopping cart
+    await productsPage.openCart();
 
-    // Locate the price displayed in the cart
-    const price = page.locator('.inventory_item_price');
+    // Find the Sauce Labs Backpack inside the cart
+    const product = cartPage.getProduct('Sauce Labs Backpack');
 
-    // Verify the price
-    await expect(price).toHaveText('$29.99');
-});
+    // Verify that the product price is $29.99
+    await expect(product).toContainText('$29.99');
+  });
 
 
-// ---------------------------------------------------------
-// TEST 3: Remove Product From Cart
-// ---------------------------------------------------------
+  // Test 3: Verify that a user can remove a product from the cart
+  test('user can remove product from cart', async ({ page }) => {
 
-test('user can remove a product from the cart', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Find Backpack
-    const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
+    // Create an object of the CartPage class
+    const cartPage = new CartPage(page);
 
-    // Add Backpack
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Add the Sauce Labs Backpack to the shopping cart
+    await productsPage.addProduct('Sauce Labs Backpack');
 
-    // Open cart
-    await page.locator('.shopping_cart_link').click();
+    // Open the shopping cart
+    await productsPage.openCart();
 
-    // Verify Backpack exists
-    await expect(
-        page.getByText('Sauce Labs Backpack')
-    ).toBeVisible();
+    // Remove the Sauce Labs Backpack from the cart
+    await cartPage.removeProduct('Sauce Labs Backpack');
 
-    // Click Remove
-    await page.getByRole('button', { name: 'Remove' }).click();
-
-    // Verify Backpack is no longer displayed
-    await expect(
-        page.getByText('Sauce Labs Backpack')
-    ).not.toBeVisible();
-});
+    // Verify that the cart contains zero products
+    await expect(cartPage.cartItems).toHaveCount(0);
+  });
 
 
-// ---------------------------------------------------------
-// TEST 4: Continue Shopping
-// ---------------------------------------------------------
+  // Test 4: Verify that a user can continue shopping from the cart
+  test('user can continue shopping from cart', async ({ page }) => {
 
-test('user can continue shopping from the cart', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Find Backpack
-    const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
+    // Create an object of the CartPage class
+    const cartPage = new CartPage(page);
 
-    // Add Backpack
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Add the Sauce Labs Backpack to the shopping cart
+    await productsPage.addProduct('Sauce Labs Backpack');
 
-    // Open cart
-    await page.locator('.shopping_cart_link').click();
+    // Open the shopping cart
+    await productsPage.openCart();
 
-    // Click Continue Shopping
-    await page.getByRole('button', { name: 'Continue Shopping' }).click();
+    // Click the "Continue Shopping" button
+    // This should take the user back to the products page
+    await cartPage.continueShopping();
 
-    // Verify user returned to the products page
-    await expect(
-        page.getByText('Products')
-    ).toBeVisible();
-});
+    // Verify that the user has returned to the products page
+    await expect(page).toHaveURL(/inventory/);
+  });
 
 
-// ---------------------------------------------------------
-// TEST 5: Checkout Button
-// ---------------------------------------------------------
+  // Test 5: Verify that a user can proceed to checkout
+  test('user can proceed to checkout', async ({ page }) => {
 
-test('user can proceed to checkout', async ({ page }) => {
+    // Create an object of the ProductsPage class
+    const productsPage = new ProductsPage(page);
 
-    // Find Backpack
-    const backpack = page
-        .locator('.inventory_item')
-        .filter({
-            hasText: 'Sauce Labs Backpack'
-        });
+    // Create an object of the CartPage class
+    const cartPage = new CartPage(page);
 
-    // Add Backpack
-    await backpack
-        .getByRole('button', { name: 'Add to cart' })
-        .click();
+    // Add the Sauce Labs Backpack to the shopping cart
+    await productsPage.addProduct('Sauce Labs Backpack');
 
-    // Open cart
-    await page.locator('.shopping_cart_link').click();
+    // Open the shopping cart
+    await productsPage.openCart();
 
-    // Click Checkout
-    await page.getByRole('button', { name: 'Checkout' }).click();
+    // Click the Checkout button
+    await cartPage.checkout();
 
-    // Verify that the checkout page is displayed
-    await expect(
-        page.getByText('Checkout: Your Information')
-    ).toBeVisible();
+    // Verify that the user is redirected to the checkout information page
+    await expect(page).toHaveURL(/checkout-step-one/);
+  });
+
 });
