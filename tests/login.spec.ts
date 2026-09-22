@@ -73,5 +73,22 @@ test.describe('Login Tests', () => {
     // Verify that the login error message is displayed
     await expect(loginPage.errorMessage).toBeVisible();
   });
+test('user can logout successfully', async ({ page }) => {
+  const loginPage = new LoginPage(page);
 
+  // Open login page
+  await loginPage.goto();
+
+  // Login with valid credentials
+  await loginPage.login('standard_user', 'secret_sauce');
+
+  // Open the navigation menu
+  await page.getByRole('button', { name: 'Open Menu' }).click();
+
+  // Click logout
+  await page.getByText('Logout').click();
+
+  // Verify user is redirected to login page
+  await expect(page).toHaveURL('https://www.saucedemo.com/');
+});
 });
