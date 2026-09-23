@@ -16,6 +16,11 @@ export class CheckoutPage {
   // Order confirmation
   readonly confirmationMessage: Locator;
 
+  // Checkout price information
+  readonly subtotal: Locator;
+  readonly tax: Locator;
+  readonly total: Locator;
+
   constructor(page: Page) {
     this.page = page;
 
@@ -41,6 +46,11 @@ export class CheckoutPage {
     this.confirmationMessage = page.getByText(
       'Thank you for your order!'
     );
+
+    // Locate checkout price information
+    this.subtotal = page.locator('.summary_subtotal_label');
+    this.tax = page.locator('.summary_tax_label');
+    this.total = page.locator('.summary_total_label');
   }
 
   // Enter customer checkout information
@@ -67,5 +77,32 @@ export class CheckoutPage {
   // Complete the order
   async finishOrder() {
     await this.finishButton.click();
+  }
+
+  // Get subtotal amount
+  async getSubtotal() {
+    const text = await this.subtotal.textContent();
+
+    return Number(
+      text?.replace('Item total: $', '')
+    );
+  }
+
+  // Get tax amount
+  async getTax() {
+    const text = await this.tax.textContent();
+
+    return Number(
+      text?.replace('Tax: $', '')
+    );
+  }
+
+  // Get total amount
+  async getTotal() {
+    const text = await this.total.textContent();
+
+    return Number(
+      text?.replace('Total: $', '')
+    );
   }
 }

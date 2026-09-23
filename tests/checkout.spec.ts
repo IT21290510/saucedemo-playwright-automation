@@ -142,5 +142,26 @@ test.describe('Checkout Tests', () => {
       'Postal Code is required'
     );
   });
+  test('checkout total is calculated correctly', async ({ page }) => {
+    const checkoutPage = new CheckoutPage(page);
+
+    // Enter checkout information
+    await checkoutPage.enterCheckoutInformation(
+      checkoutData.validCustomer.firstName,
+      checkoutData.validCustomer.lastName,
+      checkoutData.validCustomer.postalCode
+    );
+
+    // Continue to checkout overview
+    await checkoutPage.continueToOverview();
+
+    // Get subtotal, tax and total
+    const subtotal = await checkoutPage.getSubtotal();
+    const tax = await checkoutPage.getTax();
+    const total = await checkoutPage.getTotal();
+
+    // Verify total calculation
+    expect(total).toBeCloseTo(subtotal + tax, 2);
+  });
 
 });

@@ -114,4 +114,66 @@ test.describe('Cart Tests', () => {
     );
   });
 
+
+    test('user can add multiple products to cart', async ({ page }) => {
+    const productsPage = new ProductsPage(page);
+    const cartPage = new CartPage(page);
+
+    // Add first product
+    await productsPage.addProduct('Sauce Labs Backpack');
+
+    // Add second product
+    await productsPage.addProduct('Sauce Labs Bike Light');
+
+    // Verify cart badge shows two products
+    await expect(productsPage.cartBadge).toHaveText('2');
+
+    // Open cart
+    await productsPage.openCart();
+
+    // Verify both products are displayed
+    await expect(
+      cartPage.getProduct('Sauce Labs Backpack')
+    ).toBeVisible();
+
+    await expect(
+      cartPage.getProduct('Sauce Labs Bike Light')
+    ).toBeVisible();
+
+    // Verify cart contains two items
+    expect(await cartPage.getCartItemCount()).toBe(2);
+  });
+
+
+  test('user can remove one product while keeping another product', async ({
+    page,
+  }) => {
+    const productsPage = new ProductsPage(page);
+    const cartPage = new CartPage(page);
+
+    // Add two products
+    await productsPage.addProduct('Sauce Labs Backpack');
+    await productsPage.addProduct('Sauce Labs Bike Light');
+
+    // Open cart
+    await productsPage.openCart();
+
+    // Remove backpack
+    await cartPage.removeProduct('Sauce Labs Backpack');
+
+    // Verify backpack is removed
+    await expect(
+      cartPage.getProduct('Sauce Labs Backpack')
+    ).not.toBeVisible();
+
+    // Verify bike light remains
+    await expect(
+      cartPage.getProduct('Sauce Labs Bike Light')
+    ).toBeVisible();
+
+    // Verify one item remains
+    expect(await cartPage.getCartItemCount()).toBe(1);
+  });
+
+
 });

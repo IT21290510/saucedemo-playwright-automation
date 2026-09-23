@@ -20,8 +20,6 @@ test.describe('Products Tests', () => {
 
 
   test('products page is displayed', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-
     // Verify products page URL
     await expect(page).toHaveURL(
       'https://www.saucedemo.com/inventory.html'
@@ -44,9 +42,9 @@ test.describe('Products Tests', () => {
     const productsPage = new ProductsPage(page);
 
     // Locate backpack
-    const backpack = page
-      .locator('.inventory_item')
-      .filter({ hasText: 'Sauce Labs Backpack' });
+    const backpack = productsPage.productsList.filter({
+      hasText: 'Sauce Labs Backpack',
+    });
 
     // Verify backpack is visible
     await expect(backpack).toBeVisible();
@@ -59,7 +57,7 @@ test.describe('Products Tests', () => {
   test('user can add product to cart', async ({ page }) => {
     const productsPage = new ProductsPage(page);
 
-    // Add backpack to cart
+    // Add backpack
     await productsPage.addProduct('Sauce Labs Backpack');
 
     // Verify cart badge
@@ -70,7 +68,7 @@ test.describe('Products Tests', () => {
   test('user can remove product from cart', async ({ page }) => {
     const productsPage = new ProductsPage(page);
 
-    // Add backpack to cart
+    // Add backpack
     await productsPage.addProduct('Sauce Labs Backpack');
 
     // Remove backpack
@@ -78,6 +76,61 @@ test.describe('Products Tests', () => {
 
     // Verify cart badge is not visible
     await expect(productsPage.cartBadge).not.toBeVisible();
+  });
+
+
+  test('products can be sorted by price low to high', async ({ page }) => {
+    const productsPage = new ProductsPage(page);
+
+    // Sort products by price: low to high
+    await productsPage.sortProducts('lohi');
+
+    // Get displayed prices
+    const prices = await productsPage.getProductPrices();
+
+    // Create sorted copy
+    const sortedPrices = [...prices].sort(
+      (a, b) => a - b
+    );
+
+    // Verify prices are sorted correctly
+    expect(prices).toEqual(sortedPrices);
+  });
+
+
+  test('products can be sorted by price high to low', async ({ page }) => {
+    const productsPage = new ProductsPage(page);
+
+    // Sort products by price: high to low
+    await productsPage.sortProducts('hilo');
+
+    // Get displayed prices
+    const prices = await productsPage.getProductPrices();
+
+    // Create sorted copy
+    const sortedPrices = [...prices].sort(
+      (a, b) => b - a
+    );
+
+    // Verify prices are sorted correctly
+    expect(prices).toEqual(sortedPrices);
+  });
+
+
+  test('products can be sorted alphabetically A to Z', async ({ page }) => {
+    const productsPage = new ProductsPage(page);
+
+    // Sort products alphabetically
+    await productsPage.sortProducts('az');
+
+    // Get product names
+    const productNames = await productsPage.getProductNames();
+
+    // Create alphabetically sorted copy
+    const sortedNames = [...productNames].sort();
+
+    // Verify correct sorting
+    expect(productNames).toEqual(sortedNames);
   });
 
 });
