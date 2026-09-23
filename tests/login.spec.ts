@@ -1,94 +1,110 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
+import { users } from '../test-data/users';
 
-// Group all login-related test cases together
 test.describe('Login Tests', () => {
 
-  // Test 1: Verify that a valid user can log in successfully
   test('valid user can login successfully', async ({ page }) => {
-
-    // Create an object of the LoginPage class
-    // This allows us to use the methods and locators from LoginPage
     const loginPage = new LoginPage(page);
 
-    // Open the SauceDemo login page
+    // Open login page
     await loginPage.goto();
 
-    // Enter valid username and password and click the Login button
-    await loginPage.login('standard_user', 'secret_sauce');
+    // Login with valid credentials
+    await loginPage.login(
+      users.standardUser.username,
+      users.standardUser.password
+    );
 
-    // Verify that the user is successfully redirected
-    // to the inventory/products page
-    await expect(page).toHaveURL(/inventory/);
+    // Verify successful login
+    await expect(page).toHaveURL(
+      'https://www.saucedemo.com/inventory.html'
+    );
   });
 
 
-  // Test 2: Verify that login fails when an incorrect password is used
-  test('user cannot login with invalid password', async ({ page }) => {
-
-    // Create an object of the LoginPage class
+  test('invalid password shows error message', async ({ page }) => {
     const loginPage = new LoginPage(page);
 
-    // Open the login page
+    // Open login page
     await loginPage.goto();
 
-    // Enter a valid username with an incorrect password
-    await loginPage.login('standard_user', 'wrong_password');
+    // Login with invalid credentials
+    await loginPage.login(
+      users.invalidUser.username,
+      users.invalidUser.password
+    );
 
-    // Verify that the login error message is displayed
-    await expect(loginPage.errorMessage).toBeVisible();
+    // Verify error message
+    const errorMessage = await loginPage.getErrorMessage();
+
+    expect(errorMessage).toContain(
+      'Username and password do not match'
+    );
   });
 
 
-  // Test 3: Verify that login fails when username and password are empty
-  test('user cannot login with empty credentials', async ({ page }) => {
-
-    // Create an object of the LoginPage class
+  test('empty credentials show error message', async ({ page }) => {
     const loginPage = new LoginPage(page);
 
-    // Open the login page
+    // Open login page
     await loginPage.goto();
 
-    // Click the Login button without entering username or password
+    // Click login without entering credentials
     await loginPage.login('', '');
 
-    // Verify that an error message is displayed
-    await expect(loginPage.errorMessage).toBeVisible();
+    // Verify error message
+    const errorMessage = await loginPage.getErrorMessage();
+
+    expect(errorMessage).toContain(
+      'Username is required'
+    );
   });
 
 
-  // Test 4: Verify that a locked-out user cannot log in
   test('locked out user cannot login', async ({ page }) => {
-
-    // Create an object of the LoginPage class
     const loginPage = new LoginPage(page);
 
-    // Open the login page
+    // Open login page
     await loginPage.goto();
 
-    // Try to log in using the locked-out username
-    // with the correct password
-    await loginPage.login('locked_out_user', 'secret_sauce');
+    // Login using locked-out user
+    await loginPage.login(
+      users.lockedOutUser.username,
+      users.lockedOutUser.password
+    );
 
-    // Verify that the login error message is displayed
-    await expect(loginPage.errorMessage).toBeVisible();
+    // Verify error message
+    const errorMessage = await loginPage.getErrorMessage();
+
+    expect(errorMessage).toContain(
+      'Sorry, this user has been locked out.'
+    );
   });
-test('user can logout successfully', async ({ page }) => {
-  const loginPage = new LoginPage(page);
 
-  // Open login page
-  await loginPage.goto();
 
-  // Login with valid credentials
-  await loginPage.login('standard_user', 'secret_sauce');
+  test('user can logout successfully', async ({ page }) => {
+    const loginPage = new LoginPage(page);
 
-  // Open the navigation menu
-  await page.getByRole('button', { name: 'Open Menu' }).click();
+    // Open login page
+    await loginPage.goto();
 
-  // Click logout
-  await page.getByText('Logout').click();
+    // Login with valid credentials
+    await loginPage.login(
+      users.standardUser.username,
+      users.standardUser.password
+    );
 
-  // Verify user is redirected to login page
-  await expect(page).toHaveURL('https://www.saucedemo.com/');
-});
+    // Open navigation menu
+    await page.getByRole('button', { name: 'Open Menu' }).click();
+
+    // Click logout
+    await page.getByText('Logout').click();
+
+    // Verify user is redirected to login page
+    await expect(page).toHaveURL(
+      'https://www.saucedemo.com/'
+    );
+  });
+
 });

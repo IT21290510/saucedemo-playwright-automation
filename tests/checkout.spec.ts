@@ -3,189 +3,144 @@ import { LoginPage } from '../pages/LoginPage';
 import { ProductsPage } from '../pages/ProductsPage';
 import { CartPage } from '../pages/CartPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
+import { users } from '../test-data/users';
+import { checkoutData } from '../test-data/checkoutData';
 
 test.describe('Checkout Tests', () => {
+
   test.beforeEach(async ({ page }) => {
     const loginPage = new LoginPage(page);
+    const productsPage = new ProductsPage(page);
+    const cartPage = new CartPage(page);
 
-    // Open SauceDemo login page
+    // Open login page
     await loginPage.goto();
 
-    // Login with valid credentials
-    await loginPage.login('standard_user', 'secret_sauce');
+    // Login with reusable test data
+    await loginPage.login(
+      users.standardUser.username,
+      users.standardUser.password
+    );
+
+    // Add product to cart
+    await productsPage.addProduct('Sauce Labs Backpack');
+
+    // Open cart
+    await productsPage.openCart();
+
+    // Proceed to checkout
+    await cartPage.checkout();
   });
+
 
   test('user can proceed to checkout', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-    const cartPage = new CartPage(page);
-    const checkoutPage = new CheckoutPage(page);
-
-    // Add a product to the cart
-    await productsPage.addProduct('Sauce Labs Backpack');
-
-    // Open the cart
-    await productsPage.openCart();
-
-    // Click checkout
-    await cartPage.checkout();
-
-    // Verify checkout page is displayed
-    await expect(page).toHaveURL(/checkout-step-one/);
-
-    // Verify checkout form is visible
-    await expect(checkoutPage.firstNameInput).toBeVisible();
-    await expect(checkoutPage.lastNameInput).toBeVisible();
-    await expect(checkoutPage.postalCodeInput).toBeVisible();
+    // Verify checkout page
+    await expect(page).toHaveURL(
+      'https://www.saucedemo.com/checkout-step-one.html'
+    );
   });
+
 
   test('user can enter checkout information', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-    const cartPage = new CartPage(page);
     const checkoutPage = new CheckoutPage(page);
 
-    // Add product to cart
-    await productsPage.addProduct('Sauce Labs Backpack');
-
-    // Open cart
-    await productsPage.openCart();
-
-    // Proceed to checkout
-    await cartPage.checkout();
-
-    // Enter customer information
+    // Enter checkout information using reusable test data
     await checkoutPage.enterCheckoutInformation(
-      'Weenali',
-      'Ranatunge',
-      '60000'
+      checkoutData.validCustomer.firstName,
+      checkoutData.validCustomer.lastName,
+      checkoutData.validCustomer.postalCode
     );
 
-    // Verify entered values
-    await expect(checkoutPage.firstNameInput).toHaveValue('Weenali');
-    await expect(checkoutPage.lastNameInput).toHaveValue('Ranatunge');
-    await expect(checkoutPage.postalCodeInput).toHaveValue('60000');
-  });
-
-  test('user can complete an order successfully', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-    const cartPage = new CartPage(page);
-    const checkoutPage = new CheckoutPage(page);
-
-    // Add product to cart
-    await productsPage.addProduct('Sauce Labs Backpack');
-
-    // Open cart
-    await productsPage.openCart();
-
-    // Proceed to checkout
-    await cartPage.checkout();
-
-    // Enter checkout information
-    await checkoutPage.enterCheckoutInformation(
-      'Weenali',
-      'Ranatunge',
-      '60000'
-    );
-
-    // Continue to checkout overview
+    // Continue to overview
     await checkoutPage.continueToOverview();
 
     // Verify checkout overview page
-    await expect(page).toHaveURL(/checkout-step-two/);
+    await expect(page).toHaveURL(
+      'https://www.saucedemo.com/checkout-step-two.html'
+    );
+  });
 
-    // Finish the order
+
+  test('user can complete order successfully', async ({ page }) => {
+    const checkoutPage = new CheckoutPage(page);
+
+    // Enter checkout information
+    await checkoutPage.enterCheckoutInformation(
+      checkoutData.validCustomer.firstName,
+      checkoutData.validCustomer.lastName,
+      checkoutData.validCustomer.postalCode
+    );
+
+    // Continue to overview
+    await checkoutPage.continueToOverview();
+
+    // Complete order
     await checkoutPage.finishOrder();
 
-    // Verify successful order confirmation
-    await expect(checkoutPage.confirmationMessage).toBeVisible();
-  });
-
-  test('checkout cannot continue without first name', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-    const cartPage = new CartPage(page);
-    const checkoutPage = new CheckoutPage(page);
-
-    // Add product to cart
-    await productsPage.addProduct('Sauce Labs Backpack');
-
-    // Open cart
-    await productsPage.openCart();
-
-    // Proceed to checkout
-    await cartPage.checkout();
-
-    // Enter only last name and postal code
-    await checkoutPage.enterCheckoutInformation(
-      '',
-      'Ranatunge',
-      '60000'
-    );
-
-    // Try to continue
-    await checkoutPage.continueToOverview();
-
-    // Verify error message
+    // Verify order confirmation
     await expect(
-      page.locator('[data-test="error"]')
+      checkoutPage.confirmationMessage
     ).toBeVisible();
   });
 
-  test('checkout cannot continue without last name', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-    const cartPage = new CartPage(page);
+
+  test('missing first name shows error message', async ({ page }) => {
     const checkoutPage = new CheckoutPage(page);
 
-    // Add product to cart
-    await productsPage.addProduct('Sauce Labs Backpack');
-
-    // Open cart
-    await productsPage.openCart();
-
-    // Proceed to checkout
-    await cartPage.checkout();
-
-    // Enter only first name and postal code
+    // Leave first name empty
     await checkoutPage.enterCheckoutInformation(
-      'Weenali',
       '',
-      '60000'
+      checkoutData.validCustomer.lastName,
+      checkoutData.validCustomer.postalCode
     );
 
-    // Try to continue
+    // Continue
     await checkoutPage.continueToOverview();
 
     // Verify error message
-    await expect(
-      page.locator('[data-test="error"]')
-    ).toBeVisible();
+    await expect(page.locator('[data-test="error"]')).toContainText(
+      'First Name is required'
+    );
   });
 
-  test('checkout cannot continue without postal code', async ({ page }) => {
-    const productsPage = new ProductsPage(page);
-    const cartPage = new CartPage(page);
+
+  test('missing last name shows error message', async ({ page }) => {
     const checkoutPage = new CheckoutPage(page);
 
-    // Add product to cart
-    await productsPage.addProduct('Sauce Labs Backpack');
-
-    // Open cart
-    await productsPage.openCart();
-
-    // Proceed to checkout
-    await cartPage.checkout();
-
-    // Enter first name and last name without postal code
+    // Leave last name empty
     await checkoutPage.enterCheckoutInformation(
-      'Weenali',
-      'Ranatunge',
+      checkoutData.validCustomer.firstName,
+      '',
+      checkoutData.validCustomer.postalCode
+    );
+
+    // Continue
+    await checkoutPage.continueToOverview();
+
+    // Verify error message
+    await expect(page.locator('[data-test="error"]')).toContainText(
+      'Last Name is required'
+    );
+  });
+
+
+  test('missing postal code shows error message', async ({ page }) => {
+    const checkoutPage = new CheckoutPage(page);
+
+    // Leave postal code empty
+    await checkoutPage.enterCheckoutInformation(
+      checkoutData.validCustomer.firstName,
+      checkoutData.validCustomer.lastName,
       ''
     );
 
-    // Try to continue
+    // Continue
     await checkoutPage.continueToOverview();
 
     // Verify error message
-    await expect(
-      page.locator('[data-test="error"]')
-    ).toBeVisible();
+    await expect(page.locator('[data-test="error"]')).toContainText(
+      'Postal Code is required'
+    );
   });
+
 });
